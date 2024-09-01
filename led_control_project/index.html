@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LED Control Board</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="content">
+        <h1>LED Control Board</h1>
+        <div class="led-grid-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>A</th>
+                        <th>B</th>
+                        <th>C</th>
+                        <!-- Add more column headers as needed -->
+                    </tr>
+                </thead>
+                <tbody id="ledGrid">
+                    <!-- JavaScript will populate the grid here -->
+                </tbody>
+            </table>
+        </div>
+        <button onclick="saveConfiguration()">Save Configuration</button>
+        <input type="text" id="configName" placeholder="Configuration Name" />
+        <button onclick="loadConfiguration()">Load Configuration</button>
+        <input type="text" id="loadConfigName" placeholder="Configuration Name" />
+
+        <select id="configurationsDropdown"></select>
+        <button onclick="loadSelectedConfiguration()">Load Selected Configuration</button>
+
+        <script>
+            const numLEDs = {{ num_leds }};
+            const ledsPerRow = 20; // Number of LEDs per row
+            const ledGrid = document.getElementById('ledGrid');
+
+            for (let row = 0; row < Math.ceil(numLEDs / ledsPerRow); row++) {
+                const tr = document.createElement('tr');
+
+                // Row notation
+                const rowNotation = document.createElement('td');
+                rowNotation.className = 'notation';
+                rowNotation.textContent = row + 1;
+                tr.appendChild(rowNotation);
+
+                for (let col = 0; col < ledsPerRow; col++) {
+                    const index = row * ledsPerRow + col;
+                    if (index >= numLEDs) break;
+
+                    const td = document.createElement('td');
+                    const ledButton = document.createElement('button');
+                    ledButton.className = 'led-button';
+                    ledButton.dataset.index = index;
+                    ledButton.dataset.color = 'off';
+                    ledButton.style.backgroundColor = 'white';
+                    ledButton.onclick = () => toggleLED(index);
+                    td.appendChild(ledButton);
+                    tr.appendChild(td);
+                }
+
+                ledGrid.appendChild(tr);
+            }
+
+            function toggleLED(index) {
+                const colors = ['off', 'red', 'green', 'blue'];
+                const ledButton = document.querySelector(`.led-button[data-index='${index}']`);
+                let currentColor = ledButton.dataset.color;
+                let nextColor = colors[(colors.indexOf(currentColor) + 1) % colors.length];
+                ledButton.dataset.color = nextColor;
+
+                switch (nextColor) {
+                    case 'green':
+                        ledButton.style.backgroundColor = 'green';
+                        break;
+                    case 'red':
+                        ledButton.style.backgroundColor = 'red';
+                        break;
+                    case 'blue':
+                        ledButton.style.backgroundColor = 'blue';
+                        break;
+                    case 'off':
+                        ledButton.style.backgroundColor = 'white';
+                        break;
+                }
+
+                setLED(index, nextColor);
+            }
+
+            function setLED(index, color) {
+                fetch('/set_led', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ index, color }),
+                });
+            }
+
+            function saveConfiguration() {
+                const configName = document.getElementById('configName').value;
+                fetch('/save_configuration', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `name=${configName}`,
+                });
+            }
+
+            function loadConfiguration() {
+                const configName = document.getElementById('loadConfigName').value;
+                fetch(`/load_configuration?name=${configName}`)
+                    .then((response) => response.json())
+                    .then((data) => {
+                        if (data.success) {
+                            window.location.reload();
+                        }
+                    });
+            }
+
+            function fetchConfigurations() {
+                fetch('/list_configurations')
+                    .then(response => response.json())
+                    .then(files => {
+                        const dropdown = document.getElementById('configurationsDropdown');
+                        dropdown.innerHTML = '';
+                        files.forEach(file => {
+                            const option = document.createElement('option');
+                            option.value = file;
+                            option.textContent = file;
+                            dropdown.appendChild(option);
+                        });
+                    });
+            }
+
+            function loadSelectedConfiguration() {
+                const dropdown = document.getElementById('configurationsDropdown');
+                const selectedConfig = dropdown.value;
+                fetch(`/load_configuration?name=${selectedConfig}`)
+                    .then((response) => response.json())
+                    .then((data) => {
+                        if (data.success) {
+                            window.location.reload();
+                        }
+                    });
+            }
+
+            // Fetch the list of configurations on page load
+            window.onload = fetchConfigurations;
+        </script>
+    </div>
+</body>
+</html>
