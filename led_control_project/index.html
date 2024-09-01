@@ -27,10 +27,8 @@
         </div>
         <button onclick="saveConfiguration()">Save Configuration</button>
         <input type="text" id="configName" placeholder="Configuration Name" />
-        <button onclick="loadConfiguration()">Load Configuration</button>
-        <input type="text" id="loadConfigName" placeholder="Configuration Name" />
 
-        <select id="configurationsDropdown"></select>
+        <select id="configurationsDropdown" placeholder="Configuration"></select>
         <button onclick="loadSelectedConfiguration()">Load Selected Configuration</button>
 
         <script>
@@ -119,21 +117,6 @@
                         if (data.success) {
                             window.location.reload();
                         }
-                    });
-            }
-
-            function fetchConfigurations() {
-                fetch('/list_configurations')
-                    .then(response => response.json())
-                    .then(files => {
-                        const dropdown = document.getElementById('configurationsDropdown');
-                        dropdown.innerHTML = '';
-                        files.forEach(file => {
-                            const option = document.createElement('option');
-                            option.value = file;
-                            option.textContent = file;
-                            dropdown.appendChild(option);
-                        });
                     });
             }
 
